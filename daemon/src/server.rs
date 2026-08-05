@@ -27,7 +27,7 @@ use tokio_util::io::ReaderStream;
 use tokio_util::sync::CancellationToken;
 
 use crate::analysis::{AnalysisCtrlMessage, AnalysisStatus};
-use crate::config::{Config, GpsMode};
+use crate::config::{Config, GpsMode, missing_wifi_tools};
 use crate::diag::DiagDeviceCtrlMessage;
 use crate::display::DisplayState;
 use crate::gps::GpsData;
@@ -163,6 +163,7 @@ pub async fn get_config(
     ),
     responses(
         (status = StatusCode::ACCEPTED, description = "Success"),
+        (status = StatusCode::BAD_REQUEST, description = "WiFi client mode was enabled but the tools it needs are missing"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to parse or write config file"),
         (status = 422, description = "Failed to deserialize JSON body")
     ),
@@ -177,6 +178,22 @@ pub async fn set_config(
         config.gps_fixed_latitude = None;
         config.gps_fixed_longitude = None;
     }
+
+    // Enabling WiFi client mode takes the hotspot down, so refuse before writing the
+    // config if the tools needed to bring it back up again are absent (see issue #1033).
+    if config.wifi_enabled {
+        let missing = missing_wifi_tools(&config.wifi_config());
+        if !missing.is_empty() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!(
+                    "can't enable WiFi client mode: {} not found on this device. Reinstall Rayhunter with the latest installer, or copy the missing binaries into /data/rayhunter/bin and make them executable.",
+                    missing.join(" and ")
+                ),
+            ));
+        }
+    }
+
     let mut config_to_write = config.clone();
     config_to_write.wifi_ssid = None;
     config_to_write.wifi_password = None;

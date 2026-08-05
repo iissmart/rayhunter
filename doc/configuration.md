@@ -41,6 +41,8 @@ The GPS data is stored as a separate JSON file next to QMDL captures, and contai
 
 On the **Orbic**, **Moxee**, **UZ801**, **TMOHS1**, and **Wingtech**, Rayhunter can connect the device to an existing WiFi network while keeping the hotspot running. This gives the device internet access for [notifications](https://docs.ntfy.sh/) and lets you reach the web UI from any device on that network.
 
+Orbic units built around the Unisoc UWE5622 radio are an exception: client mode cannot work there. See [WiFi client mode](./orbic.md#wifi-client-mode) on the Orbic page for how to tell the two variants apart.
+
 - **Enable WiFi** turns WiFi client mode on or off. Disabling it does not erase saved credentials.
 - **Scan** searches for nearby networks. Select one from the dropdown, or type an SSID manually.
 - **Password** is required for WPA/WPA2 networks. The password is stored separately from `config.toml` (in `wpa_sta.conf` on the device) and is never exposed through the API.
@@ -51,6 +53,8 @@ After saving, the connection status will show **connecting**, **connected** (wit
 ### Crash Recovery
 
 The WiFi kernel module (`wlan.ko`) can occasionally crash or unload, taking both the hotspot and client interfaces down with it. Rayhunter includes a watchdog that detects this and automatically reloads the module, restarts the hotspot, and reconnects to the configured network. During recovery the WiFi status will show **recovering**.
+
+Recovery only works on devices whose WiFi driver is named `wlan`. Devices that name it something else (such as `sprdwl_ng` on Unisoc-based Orbics) will log `wlan.ko not found for kernel <version>` and cannot recover automatically.
 
 On the first detection of a crash, a diagnostic snapshot is saved to `/data/rayhunter/crash-logs/` on the device. You can pull these logs with `adb pull /data/rayhunter/crash-logs/` and inspect them to understand what went wrong. Each log contains:
 

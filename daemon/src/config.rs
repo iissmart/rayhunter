@@ -195,6 +195,31 @@ fn resolve_bin(name: &str) -> Option<String> {
     None
 }
 
+/// Names of the tools WiFi client mode needs that aren't present on this device.
+///
+/// Mirrors how `wifi-station` spawns them: a configured path is used verbatim, while an
+/// unset one falls back to a bare name resolved through `PATH`.
+pub fn missing_wifi_tools(wifi_config: &wifi_station::WifiConfig) -> Vec<&'static str> {
+    [
+        ("wpa_supplicant", &wifi_config.wpa_supplicant_bin),
+        ("iw", &wifi_config.iw_bin),
+    ]
+    .into_iter()
+    .filter(|&(name, bin)| match bin {
+        Some(path) => !std::path::Path::new(path).exists(),
+        None => !exists_on_path(name),
+    })
+    .map(|(name, _)| name)
+    .collect()
+}
+
+fn exists_on_path(name: &str) -> bool {
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&paths).any(|dir| dir.join(name).exists())
+}
+
 pub async fn parse_config<P>(path: P) -> Result<Config, RayhunterError>
 where
     P: AsRef<std::path::Path>,
@@ -232,5 +257,28 @@ pub fn parse_args() -> Args {
     }
     Args {
         config_path: args[1].clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_missing_wifi_tools() {
+        let present = std::env::current_exe().unwrap().display().to_string();
+        let wifi_config = wifi_station::WifiConfig {
+            wpa_supplicant_bin: Some("/nonexistent/wpa_supplicant".to_string()),
+            iw_bin: Some(present.clone()),
+            ..Default::default()
+        };
+        assert_eq!(missing_wifi_tools(&wifi_config), vec!["wpa_supplicant"]);
+
+        let wifi_config = wifi_station::WifiConfig {
+            wpa_supplicant_bin: Some(present.clone()),
+            iw_bin: Some(present),
+            ..Default::default()
+        };
+        assert!(missing_wifi_tools(&wifi_config).is_empty());
     }
 }

@@ -24,7 +24,27 @@ pay more than 30 USD for such a device (without shipping).
 
 ## WiFi client mode
 
-The Orbic's QCA6174 radio supports running the hotspot and connecting to an external WiFi network at the same time. See [WiFi Client Mode](./configuration.md#wifi-client-mode) for setup.
+WiFi client mode works only on Orbic units built around the **QCA6174** radio, where
+the hotspot keeps running while the device is connected to another network. Some units
+ship a **Unisoc UWE5622** radio instead, and client mode cannot work on those. Both
+variants exist under the same model number and firmware: the device picks its driver
+from the SDIO device ID in `/etc/init.d/load_wifi_driver.sh`.
+
+To check which radio your unit has, [obtain a shell](#obtaining-a-shell) and run:
+
+```sh
+grep -oE 'wlan|sprdwl_ng' /proc/modules | head -1
+```
+
+`wlan` means QCA6174 and client mode is supported; `sprdwl_ng` means UWE5622 and it is
+not. On UWE5622 units the driver rejects `NL80211_CMD_CONNECT` on the station interface
+with `EPERM`, while scanning on the primary interface returns no results at all, so no
+combination of settings associates. Enabling client mode there fails with `scan failed
+with -EIO`; the firmware's own station mode is not implemented either, so there is no
+workaround. If enabling it leaves the web UI unreachable over WiFi, reach it over USB
+with `adb forward tcp:8080 tcp:8080` and turn the setting off again.
+
+See [WiFi Client Mode](./configuration.md#wifi-client-mode) for setup on supported units.
 
 ## Two kinds of installers
 

@@ -62,6 +62,8 @@ See `/data/usb/boot_hsusb_composition` for a list of USB modes and Android USB g
 
 The Orbic, Moxee, UZ801, and TMOHS1 can connect to a nearby WiFi network while still running their own hotspot. This gives the device internet access for ntfy notifications and lets you reach the web UI from your home network. See [WiFi Client Mode](./configuration.md#wifi-client-mode) in the configuration guide for setup instructions.
 
+Orbic units with a Unisoc UWE5622 radio are an exception and cannot connect as a client at all; see [WiFi client mode](./orbic.md#wifi-client-mode) for how to identify them.
+
 ### WiFi client mode is connected but I can't reach the internet
 
 Check that the **DNS Servers** field in the config has valid entries (the default is `9.9.9.9` and `149.112.112.112`). If your home network and the device hotspot use the same subnet (for example, both are on `192.168.1.x`), try restarting the daemon by saving the config again from the web UI.
