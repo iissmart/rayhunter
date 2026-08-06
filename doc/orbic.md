@@ -27,17 +27,22 @@ pay more than 30 USD for such a device (without shipping).
 WiFi client mode works only on Orbic units built around the **QCA6174** radio, where
 the hotspot keeps running while the device is connected to another network. Some units
 ship a **Unisoc UWE5622** radio instead, and client mode cannot work on those. Both
-variants exist under the same model number and firmware: the device picks its driver
-from the SDIO device ID in `/etc/init.d/load_wifi_driver.sh`.
+variants are sold under the same model number, but they run different firmware builds:
+a UWE5622 image ships only the Unisoc driver and no `wlan.ko` at all.
 
-To check which radio your unit has, [obtain a shell](#obtaining-a-shell) and run:
+To check which radio your unit has, [obtain a shell](#obtaining-a-shell) and run (no
+root needed):
 
 ```sh
-grep -oE 'wlan|sprdwl_ng' /proc/modules | head -1
+cat /etc/ver.conf                                    # firmware build string
+grep -oE 'wlan|sprdwl_ng' /proc/modules | head -1    # driver in use
+ls /usr/lib/modules/3.18.48/extra/                   # is wlan.ko even shipped?
 ```
 
 `wlan` means QCA6174 and client mode is supported; `sprdwl_ng` means UWE5622 and it is
-not. On UWE5622 units the driver rejects `NL80211_CMD_CONNECT` on the station interface
+not. Because each image carries only one driver, the firmware string is a reliable
+proxy: `ORB400L_V1.2.0_BVZRT_R201120` is a UWE5622 build.
+ On UWE5622 units the driver rejects `NL80211_CMD_CONNECT` on the station interface
 with `EPERM`, while scanning on the primary interface returns no results at all, so no
 combination of settings associates. Enabling client mode there fails with `scan failed
 with -EIO`; the firmware's own station mode is not implemented either, so there is no
